@@ -1,0 +1,887 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Claude Training</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-50 text-slate-900 min-h-screen antialiased">
+
+  <a href="#main"
+     class="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 bg-white border border-slate-300 rounded px-3 py-2 text-sm shadow">
+    <span data-i18n="skipToContent">Skip to content</span>
+  </a>
+
+  <header class="bg-white border-b border-slate-200">
+    <div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between gap-4 flex-wrap">
+      <div>
+        <h1 class="text-lg sm:text-xl font-semibold leading-tight">Claude Training</h1>
+        <p class="text-xs text-slate-500" data-i18n="tagline"></p>
+      </div>
+      <div class="flex items-center gap-3 flex-wrap">
+        <div id="progress" class="flex items-center gap-2" aria-live="polite">
+          <span class="text-sm text-slate-600">
+            <span data-i18n="progressLabel"></span>
+            <span id="progressCount" class="font-medium tabular-nums">0/0</span>
+          </span>
+          <div class="w-32 sm:w-48 h-2 bg-slate-200 rounded-full overflow-hidden" role="presentation">
+            <div id="progressBar" class="h-full bg-emerald-500 transition-all duration-200" style="width:0%"></div>
+          </div>
+        </div>
+        <button id="langToggle" type="button"
+                aria-label="Switch language / Zmień język"
+                class="min-h-[44px] min-w-[44px] px-3 py-2 rounded border border-slate-300 bg-white hover:bg-slate-100 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-slate-500">
+          <span id="langLabel">EN</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div class="max-w-5xl mx-auto px-4 py-6 grid grid-cols-1 md:grid-cols-[14rem_1fr] gap-6">
+    <nav id="lessonNav" class="space-y-1" aria-label="Lessons / Lekcje"></nav>
+    <main id="main" tabindex="-1" class="bg-white border border-slate-200 rounded-lg p-5 sm:p-8 focus:outline-none"></main>
+  </div>
+
+  <footer class="max-w-5xl mx-auto px-4 py-6 text-xs text-slate-500 text-center">
+    <p data-i18n="footer"></p>
+  </footer>
+
+  <script type="module">
+    const LANG_KEY = "claude-training:lang";
+    const PROGRESS_KEY = "claude-training:progress";
+
+    const UI = {
+      tagline: {
+        en: "A friendly companion for learning Claude Desktop.",
+        pl: "Przyjazny przewodnik po pracy z Claude Desktop."
+      },
+      progressLabel: { en: "Progress: ", pl: "Postęp: " },
+      skipToContent: { en: "Skip to content", pl: "Przejdź do treści" },
+      conceptHeading: { en: "What this lesson is about", pl: "O czym jest ta lekcja" },
+      exercisesHeading: { en: "Try it yourself", pl: "Wypróbuj sama" },
+      markDone: { en: "Mark as done", pl: "Oznacz jako zrobione" },
+      footer: {
+        en: "Open this page in one window and Claude Desktop in another, then follow each lesson at your own pace.",
+        pl: "Otwórz tę stronę w jednym oknie, a Claude Desktop w drugim — i przechodź lekcje we własnym tempie."
+      }
+    };
+
+    const LESSONS = [
+      {
+        id: "basics",
+        title: {
+          en: "What is Claude + basic chatting",
+          pl: "Czym jest Claude i jak z nim rozmawiać"
+        },
+        body: {
+          en:
+`Claude is an AI assistant you can chat with — a bit like texting a knowledgeable colleague who can help you write, summarise, brainstorm ideas, and explain things in plain language. You type a message (a "prompt"), Claude reads it and replies. The more clearly you describe what you want, the better the answer.
+
+A few tips to get good results:
+
+• Be specific. Instead of "write a Facebook post", try "write a short, friendly Facebook post about Saturday's free outdoor concert in the park, for residents of all ages".
+
+• Give context. Tell Claude who the message is for, the tone you want, and any constraints — length, language, formality.
+
+• Ask for changes. If the first reply isn't quite right, just say what to fix: "make it shorter", "warmer tone", "add an emoji", "more formal", "rewrite in Polish".
+
+• Write to Claude in the language you want the answer in. If you need Polish output, write your prompt in Polish too.
+
+You can't break anything. Try things, ask Claude to redo them, and you'll quickly get a feel for what works.`,
+          pl:
+`Claude to asystent AI, z którym możesz po prostu rozmawiać — trochę jak pisanie do dobrze poinformowanego kolegi, który pomoże Ci napisać, streścić, podpowiedzieć pomysł albo wytłumaczyć coś trudnego prostym językiem. Wpisujesz wiadomość (zwaną „promptem"), Claude ją czyta i odpisuje. Im jaśniej opiszesz, czego potrzebujesz, tym lepsza odpowiedź.
+
+Kilka rad na początek:
+
+• Bądź konkretna. Zamiast „napisz post na Facebooka" spróbuj „napisz krótki, przyjazny post na Facebooka o sobotnim bezpłatnym koncercie w parku, dla mieszkańców w każdym wieku".
+
+• Podaj kontekst. Powiedz Claude, do kogo kierujesz wiadomość, w jakim tonie i jakie są ograniczenia — długość, język, stopień formalności.
+
+• Proś o poprawki. Jeśli pierwsza odpowiedź nie pasuje, po prostu powiedz, co zmienić: „skróć", „cieplejszy ton", „dodaj emoji", „bardziej oficjalnie", „przetłumacz na polski".
+
+• Pisz do Claude w języku, w jakim chcesz dostać odpowiedź. Jeśli potrzebujesz tekstu po polsku — napisz prompt po polsku.
+
+Nic nie zepsujesz. Próbuj, proś Claude o poprawki, a szybko wyczujesz, co działa.`
+        },
+        exercises: [
+          {
+            id: "basics-1",
+            title: {
+              en: "Reply to a resident's question",
+              pl: "Odpowiedź na pytanie mieszkanki"
+            },
+            prompt: {
+              en:
+`Open Claude Desktop and paste this prompt:
+
+"Help me write a friendly, professional reply to a resident of Gmina Kosakowo who asks: 'When does the rubbish get collected on my street next week?' I don't have the schedule in front of me — write the reply so it is warm, but explain I will check the schedule and send the date back by tomorrow."
+
+Read what Claude writes. Then ask Claude to make it shorter (under four sentences). Compare the two versions — which one would you actually send?`,
+              pl:
+`Otwórz Claude Desktop i wklej ten prompt:
+
+„Pomóż mi napisać przyjazną i profesjonalną odpowiedź dla mieszkanki Gminy Kosakowo, która pyta: »Kiedy w przyszłym tygodniu są odbierane śmieci na mojej ulicy?«. Nie mam pod ręką harmonogramu — niech odpowiedź będzie ciepła, ale wyjaśnij, że sprawdzę harmonogram i odeślę termin do jutra."
+
+Przeczytaj, co Claude napisze. Potem poproś Claude o skrócenie do maksymalnie czterech zdań. Porównaj obie wersje — którą naprawdę byś wysłała?`
+            }
+          },
+          {
+            id: "basics-2",
+            title: {
+              en: "Short Facebook post about a local event",
+              pl: "Krótki post na Facebooka o lokalnym wydarzeniu"
+            },
+            prompt: {
+              en:
+`Try this prompt in Claude Desktop:
+
+"Write a short Facebook post (max. 60 words) for the Gmina Kosakowo page announcing a free family picnic this Sunday at 14:00 in the park near the school. Friendly tone, finish with an invitation to come along. Add 2–3 fitting emojis."
+
+Then ask Claude for two more versions in different tones — one a bit more formal, one a bit more playful. Which one fits the Gmina's Facebook best?`,
+              pl:
+`Wypróbuj ten prompt w Claude Desktop:
+
+„Napisz krótki post na Facebooka (maks. 60 słów) na stronę Gminy Kosakowo, zapowiadający bezpłatny rodzinny piknik w tę niedzielę o 14:00 w parku przy szkole. Ton przyjazny, na końcu zaproszenie. Dodaj 2–3 pasujące emoji."
+
+Następnie poproś Claude o dwie kolejne wersje w innych tonach — jedną nieco bardziej oficjalną, drugą trochę luźniejszą. Która najlepiej pasuje do Facebooka gminy?`
+            }
+          },
+          {
+            id: "basics-3",
+            title: {
+              en: "Warm up an over-formal message",
+              pl: "Ociepl zbyt oficjalną wiadomość"
+            },
+            prompt: {
+              en:
+`Take any short, very formal message you've had to write at work — or invent one, for example: "We hereby inform residents that the office will be closed on 2 May."
+
+Paste it into Claude Desktop with this instruction:
+
+"Rewrite this message to be warmer and more human, while staying polite and professional. Keep it short."
+
+Then send a second prompt asking for the same message in only two sentences. Notice how Claude can stay polite without sounding stiff.`,
+              pl:
+`Weź jakąś krótką, bardzo oficjalną wiadomość, którą musiałaś napisać w pracy — albo wymyśl jedną, na przykład: „Informujemy mieszkańców, że biuro będzie zamknięte 2 maja."
+
+Wklej ją do Claude Desktop z taką instrukcją:
+
+„Przepisz tę wiadomość tak, żeby była cieplejsza i bardziej ludzka, ale wciąż uprzejma i profesjonalna. Niech zostanie krótka."
+
+Potem wyślij drugi prompt z prośbą o tę samą wiadomość w zaledwie dwóch zdaniach. Zauważ, jak Claude potrafi pozostać uprzejmy, nie brzmiąc sztywno.`
+            }
+          },
+          {
+            id: "basics-4",
+            title: {
+              en: "Iterate, don't restart",
+              pl: "Iteruj, nie zaczynaj od nowa"
+            },
+            prompt: {
+              en:
+`Open Claude Desktop and start one chat. Send this first prompt:
+
+"Napisz krótką notkę prasową (około 120 słów) ogłaszającą nową ścieżkę rowerową wzdłuż ul. Nadmorskiej w Gminie Kosakowo, otwartą w najbliższą sobotę. Ton przyjazny, ale rzeczowy."
+
+Read what Claude writes. Now — in the same chat, not a new one — send three follow-ups, one at a time:
+
+1. "Skróć o połowę."
+2. "Dodaj jedno zdanie cytatu wójta — wymyśl je."
+3. "Bardziej rzeczowy ton, mniej przymiotników."
+
+Compare the four versions side by side. Iterating inside one conversation is almost always faster than rewriting a long prompt from scratch — and Claude keeps the context from your earlier corrections, so each next round gets closer to what you actually want.`,
+              pl:
+`Otwórz Claude Desktop i rozpocznij jedną rozmowę. Wyślij ten pierwszy prompt:
+
+„Napisz krótką notkę prasową (około 120 słów) ogłaszającą nową ścieżkę rowerową wzdłuż ul. Nadmorskiej w Gminie Kosakowo, otwartą w najbliższą sobotę. Ton przyjazny, ale rzeczowy."
+
+Przeczytaj, co Claude napisał. Teraz — w tej samej rozmowie, nie w nowej — wyślij trzy poprawki, jedna po drugiej:
+
+1. „Skróć o połowę."
+2. „Dodaj jedno zdanie cytatu wójta — wymyśl je."
+3. „Bardziej rzeczowy ton, mniej przymiotników."
+
+Porównaj cztery wersje obok siebie. Iteracja w jednej rozmowie jest prawie zawsze szybsza niż przepisywanie długiego promptu od początku — Claude pamięta Twoje wcześniejsze poprawki i z każdą kolejną wersją podchodzi bliżej tego, czego naprawdę chcesz.`
+            }
+          },
+          {
+            id: "basics-5",
+            title: {
+              en: "When Claude is wrong — and how to spot it",
+              pl: "Kiedy Claude się myli — i jak to zauważyć"
+            },
+            prompt: {
+              en:
+`Send this prompt in Claude Desktop:
+
+"Kiedy odbywa się najbliższa sesja Rady Gminy Kosakowo? Podaj datę, godzinę i porządek obrad."
+
+Claude doesn't actually know — but it might confidently invent a date, a time, even names. This is called a hallucination, and it's how AI gets people into trouble at work.
+
+Now, in the same chat, send a second prompt:
+
+"Cofnij to. Jeśli nie masz pewności co do konkretnych dat, nazwisk lub liczb, napisz wprost »nie wiem« i wyjaśnij, czego potrzebujesz, żeby odpowiedzieć rzetelnie."
+
+Read the second answer. The takeaway for council comms: before you publish or send anything Claude wrote, never trust dates, names, prices, statistics or quotes without checking the source yourself. A simple habit — ask Claude to cite or to say "I don't know" — catches most of these mistakes early.`,
+              pl:
+`Wyślij ten prompt w Claude Desktop:
+
+„Kiedy odbywa się najbliższa sesja Rady Gminy Kosakowo? Podaj datę, godzinę i porządek obrad."
+
+Claude tego naprawdę nie wie — ale może z dużą pewnością siebie wymyślić datę, godzinę, a nawet nazwiska. To się nazywa „halucynacja" i to przez nią AI wpędza ludzi w kłopoty w pracy.
+
+Teraz, w tej samej rozmowie, wyślij drugi prompt:
+
+„Cofnij to. Jeśli nie masz pewności co do konkretnych dat, nazwisk lub liczb, napisz wprost »nie wiem« i wyjaśnij, czego potrzebujesz, żeby odpowiedzieć rzetelnie."
+
+Przeczytaj drugą odpowiedź. Wniosek dla komunikacji w urzędzie: zanim opublikujesz albo wyślesz cokolwiek, co napisał Claude, nigdy nie ufaj datom, nazwiskom, cenom, statystykom ani cytatom bez sprawdzenia w źródle. Prosty nawyk — poproś Claude'a o podanie źródła albo o jasne „nie wiem" — wyłapuje większość takich błędów zawczasu.`
+            }
+          }
+        ]
+      },
+      {
+        id: "projects",
+        title: {
+          en: "Projects in Claude Desktop",
+          pl: "Projekty w Claude Desktop"
+        },
+        body: {
+          en:
+`A "Project" in Claude Desktop is a dedicated workspace for one topic, role, or recurring task. You give it a name, optionally write some custom instructions (e.g. "Always reply in friendly, slightly informal Polish, suitable for residents of a small coastal commune"), and you can add documents that Claude will keep in mind every time you chat inside that project.
+
+Why this matters for council communications:
+
+• Tone consistency. Write your style and tone guidance once in the project instructions, and every Facebook post, email reply, or announcement you draft inside the project follows the same voice.
+
+• Project knowledge. Upload your style guide, a list of services and office hours, common resident questions, a glossary of Polish terms you prefer — Claude can refer to these in every conversation in the project, without you re-pasting them.
+
+• Separate workspaces. Keep "Resident replies", "Facebook content", and "Internal briefings" in separate projects, each with its own knowledge and tone. Switching projects is like switching folders — nothing gets mixed up.
+
+When to use a Project vs. a plain chat: use a Project when you'll come back to the same kind of work again and again. For a one-off question, a plain chat is fine.`,
+          pl:
+`„Projekt" w Claude Desktop to dedykowana przestrzeń pracy dla jednego tematu, roli lub powtarzalnego zadania. Nadajesz mu nazwę, opcjonalnie wpisujesz własne instrukcje (np. „Odpowiadaj zawsze przyjaznym, lekko nieformalnym polskim, odpowiednim dla mieszkańców małej nadmorskiej gminy") i możesz dodać dokumenty, o których Claude będzie pamiętał za każdym razem, gdy rozmawiasz w tym projekcie.
+
+Dlaczego to ważne w komunikacji gminnej:
+
+• Spójny ton. Wpiszesz swoje wskazówki dotyczące stylu raz, w instrukcjach projektu, a każdy post na Facebooku, odpowiedź na maila czy ogłoszenie tworzone w tym projekcie trzyma się tego samego głosu.
+
+• Wiedza projektu. Wgrywasz przewodnik stylu, listę usług i godzin urzędowania, najczęstsze pytania mieszkańców, słowniczek polskich określeń, których wolisz używać — Claude może z nich korzystać w każdej rozmowie w projekcie, bez konieczności wklejania ich od nowa.
+
+• Oddzielne przestrzenie. Trzymaj „Odpowiedzi do mieszkańców", „Treści na Facebooka" i „Briefy wewnętrzne" w osobnych projektach, każdy z własną wiedzą i tonem. Przełączanie projektów to jak zmiana folderu — niczego się nie miesza.
+
+Kiedy projekt, a kiedy zwykła rozmowa: projekt sprawdza się tam, gdzie będziesz wracać do tego samego typu zadań. Do jednorazowego pytania wystarczy zwykła rozmowa.`
+        },
+        exercises: [
+          {
+            id: "projects-1",
+            title: {
+              en: "Create your first project",
+              pl: "Stwórz swój pierwszy projekt"
+            },
+            prompt: {
+              en:
+`In Claude Desktop, find the Projects feature (usually in the left sidebar) and create a new project. Name it something like "Gmina Kosakowo — Komunikacja".
+
+Open the project's custom instructions and paste something like:
+
+"You help me write content for Gmina Kosakowo — a small coastal commune in northern Poland. Default to Polish, friendly but professional tone, slightly informal but never sloppy. Address residents as a group ('Mieszkańcy') rather than 'Państwo' unless I ask for a formal version. Keep things concise. If something is unclear, ask one short clarifying question before writing."
+
+Save the project, start a new chat inside it, and ask: "Help me write a short greeting for our Facebook page on Mother's Day." Notice how the answer already matches the tone you set — no need to re-explain it every time.`,
+              pl:
+`W Claude Desktop znajdź funkcję Projekty (zwykle w lewym panelu) i utwórz nowy projekt. Nazwij go np. „Gmina Kosakowo — Komunikacja".
+
+Otwórz instrukcje projektu i wklej coś takiego:
+
+„Pomagasz mi tworzyć treści dla Gminy Kosakowo — małej nadmorskiej gminy w północnej Polsce. Domyślnie pisz po polsku, w przyjaznym, ale profesjonalnym tonie, lekko nieformalnie, ale nigdy niedbale. Zwracaj się do mieszkańców jako do grupy („Mieszkańcy"), a nie „Państwo", chyba że poproszę o wersję oficjalną. Bądź zwięzły. Jeśli coś jest niejasne, zadaj jedno krótkie pytanie doprecyzowujące zanim napiszesz treść."
+
+Zapisz projekt, rozpocznij w nim nową rozmowę i zapytaj: „Pomóż mi napisać krótkie życzenia z okazji Dnia Matki na nasz Facebook." Zauważ, że odpowiedź już trzyma ton, który ustawiłaś — nie musisz wszystkiego tłumaczyć od nowa.`
+            }
+          },
+          {
+            id: "projects-2",
+            title: {
+              en: "Add knowledge to the project",
+              pl: "Dodaj wiedzę do projektu"
+            },
+            prompt: {
+              en:
+`Open the project you just created. Find the project knowledge section (sometimes called "files" or "documents") and add a small text file with content like this — invent or copy real material:
+
+"Gmina Kosakowo — quick reference for communications
+- Office hours: Monday 8:00–16:00, Tuesday–Friday 7:30–15:30
+- Most common resident questions: waste collection schedule, sports hall booking, building permits, dog registration
+- Words we avoid: 'klienci' (residents are 'mieszkańcy'), 'Państwo' in casual posts
+- Preferred sign-off: 'Pozdrawiamy, Urząd Gminy Kosakowo'"
+
+Save the file into the project. Then in a new chat ask: "Draft a short reply for a resident asking when the office is open on Friday." Notice how Claude uses the actual hours from the file — without you typing them in.`,
+              pl:
+`Otwórz projekt, który właśnie stworzyłaś. Znajdź sekcję wiedzy projektu (czasem nazwaną „pliki" lub „dokumenty") i dodaj mały plik tekstowy z treścią taką jak poniżej — możesz wymyślić lub przepisać prawdziwy fragment:
+
+„Gmina Kosakowo — krótka ściągawka dla komunikacji
+- Godziny urzędu: poniedziałek 8:00–16:00, wtorek–piątek 7:30–15:30
+- Najczęstsze pytania mieszkańców: harmonogram odbioru śmieci, rezerwacja hali sportowej, pozwolenia na budowę, rejestracja psa
+- Słowa, których unikamy: „klienci" (mieszkańcy to „mieszkańcy"), „Państwo" w luźnych postach
+- Preferowana stopka: „Pozdrawiamy, Urząd Gminy Kosakowo""
+
+Zapisz plik w projekcie. Następnie w nowej rozmowie zapytaj: „Napisz krótką odpowiedź dla mieszkanki pytającej, do której godziny urząd jest czynny w piątek." Zauważ, że Claude używa konkretnych godzin z pliku — bez wpisywania ich przez Ciebie.`
+            }
+          },
+          {
+            id: "projects-3",
+            title: {
+              en: "Draft a series with a consistent voice",
+              pl: "Stwórz serię tekstów w spójnym tonie"
+            },
+            prompt: {
+              en:
+`Inside the same project, in one chat, ask Claude to write three short Facebook posts for three different upcoming events. Invent them, for example:
+
+1. A free outdoor yoga morning at the harbour, Saturday at 9:00.
+2. A children's reading session on Thursday at 17:00 in the local library.
+3. A reminder about a planned overnight road closure on the main street.
+
+Send one prompt covering all three:
+
+"Write three short Facebook posts for our page (max 60 words each, friendly tone) about these three events: [list them]. Match the tone of the project instructions and use the standard sign-off."
+
+Read the three posts — they should sound like the same person wrote all of them. That's the project working. Then change one project instruction (e.g. make the tone more formal) and send the same prompt again. Notice the difference.`,
+              pl:
+`W tym samym projekcie, w jednej rozmowie, poproś Claude o napisanie trzech krótkich postów na Facebooka o trzech różnych nadchodzących wydarzeniach. Możesz je wymyślić, na przykład:
+
+1. Bezpłatna joga na świeżym powietrzu w porcie, sobota godz. 9:00.
+2. Czytanie dla dzieci w czwartek o 17:00 w bibliotece gminnej.
+3. Przypomnienie o planowanym nocnym zamknięciu głównej ulicy.
+
+Wyślij jeden prompt obejmujący wszystkie trzy:
+
+„Napisz trzy krótkie posty na Facebooka na naszą stronę (maks. 60 słów każdy, przyjazny ton) o tych trzech wydarzeniach: [wymień je]. Trzymaj się tonu z instrukcji projektu i użyj standardowej stopki."
+
+Przeczytaj trzy posty — powinny brzmieć, jakby napisała je ta sama osoba. To właśnie efekt projektu. Potem zmień jeden punkt w instrukcjach projektu (np. ustaw bardziej oficjalny ton) i wyślij ten sam prompt jeszcze raz. Zauważ różnicę.`
+            }
+          },
+          {
+            id: "projects-4",
+            title: {
+              en: "A briefing from multiple sources",
+              pl: "Brief z kilku źródeł w jednym projekcie"
+            },
+            prompt: {
+              en:
+`Open the same project you've been using. Add two short text files to the project's knowledge — you can invent the content, close to something real:
+
+File A — "Uchwała XX/2026 — fragment":
+"§3. Mieszkańcy gminy mogą bezpłatnie korzystać z hali sportowej w soboty w godz. 9:00–13:00 po wcześniejszej rejestracji w sekretariacie. §4. Rejestracja jest ważna 30 dni."
+
+File B — "Notatka z narady, 12 maja":
+"Wójt prosi o jednostronicowy materiał dla mieszkańców wyjaśniający nowe zasady korzystania z hali. Zwrócić uwagę na rejestrację i wyjaśnić, czemu jest wymagana. Na piątek."
+
+Now start a new chat in that project and send:
+
+"Na podstawie obu dokumentów w projekcie przygotuj jednostronicowy materiał dla mieszkańców o nowych zasadach korzystania z hali sportowej. Wyjaśnij prostym językiem: co się zmienia, kiedy, jak się zarejestrować i dlaczego rejestracja jest potrzebna. Zakończ krótkim akapitem »Masz pytania?« z odesłaniem do sekretariatu."
+
+Notice how Claude combines facts from both files into one coherent piece — without you re-pasting either one. That's what Projects + knowledge files unlock for any task that draws on more than one source.`,
+              pl:
+`Otwórz ten sam projekt, którego używasz. Dodaj dwa krótkie pliki tekstowe do wiedzy projektu — treść możesz wymyślić, blisko prawdy:
+
+Plik A — „Uchwała XX/2026 — fragment":
+„§3. Mieszkańcy gminy mogą bezpłatnie korzystać z hali sportowej w soboty w godz. 9:00–13:00 po wcześniejszej rejestracji w sekretariacie. §4. Rejestracja jest ważna 30 dni."
+
+Plik B — „Notatka z narady, 12 maja":
+„Wójt prosi o jednostronicowy materiał dla mieszkańców wyjaśniający nowe zasady korzystania z hali. Zwrócić uwagę na rejestrację i wyjaśnić, czemu jest wymagana. Na piątek."
+
+Teraz rozpocznij w tym projekcie nową rozmowę i wyślij:
+
+„Na podstawie obu dokumentów w projekcie przygotuj jednostronicowy materiał dla mieszkańców o nowych zasadach korzystania z hali sportowej. Wyjaśnij prostym językiem: co się zmienia, kiedy, jak się zarejestrować i dlaczego rejestracja jest potrzebna. Zakończ krótkim akapitem »Masz pytania?« z odesłaniem do sekretariatu."
+
+Zauważ, jak Claude łączy fakty z obu plików w jeden spójny tekst — bez wklejania ich na nowo. To właśnie dają projekty z wiedzą wszędzie tam, gdzie praca opiera się na więcej niż jednym źródle.`
+            }
+          }
+        ]
+      },
+      {
+        id: "skills",
+        title: {
+          en: "Skills",
+          pl: "Umiejętności (Skills)"
+        },
+        body: {
+          en:
+`"Skills" are specialised helpers built into Claude Desktop. When you ask for a particular kind of work — a Word document, a PowerPoint presentation, an Excel sheet, or anything that involves a PDF — Claude knows to use the right skill behind the scenes. You don't install anything and you usually don't need to invoke them by name.
+
+The skills most useful for council communications work:
+
+• Word documents (.docx). Drafts of newsletters, briefings, letters, press releases — anything that should land in your colleagues' inboxes looking like a proper document.
+
+• PowerPoint presentations (.pptx). Slides for council meetings, public consultations, school visits, or staff training.
+
+• Excel spreadsheets (.xlsx). Simple trackers — event sign-ups, contact lists, content calendars.
+
+• PDFs. Reading existing council PDFs (resolutions, reports, official notices) and producing summaries or pulling out key information; also producing print-ready versions of your own content.
+
+How to trigger a skill: describe what you want naturally. "Make me a Word document with…" or "Create a 6-slide presentation about…" is enough. Claude will produce a downloadable file you can open straight away. Ask for changes the same way — "page 2 should be bullet points instead of a paragraph", "use a friendlier tone on slide 4".`,
+          pl:
+`„Umiejętności" (po angielsku „Skills") to wyspecjalizowani pomocnicy wbudowani w Claude Desktop. Gdy poprosisz o konkretny typ pracy — dokument Word, prezentację PowerPoint, arkusz Excel albo cokolwiek z plikiem PDF — Claude sam wybiera odpowiednią umiejętność, w tle. Nie musisz niczego instalować i zwykle nie musisz wywoływać tych umiejętności po nazwie.
+
+Umiejętności najprzydatniejsze w pracy komunikacyjnej w gminie:
+
+• Dokumenty Word (.docx). Wersje robocze biuletynów, briefów, pism, komunikatów prasowych — wszystko, co powinno trafiać do skrzynek kolegów jako porządny dokument.
+
+• Prezentacje PowerPoint (.pptx). Slajdy na sesje rady, konsultacje społeczne, wizyty w szkołach lub szkolenia dla pracowników.
+
+• Arkusze Excel (.xlsx). Proste tabele — zapisy na wydarzenia, listy kontaktów, kalendarze publikacji.
+
+• PDF-y. Czytanie istniejących PDF-ów (uchwał, raportów, oficjalnych ogłoszeń) i robienie z nich streszczeń lub wyciąganie kluczowych informacji; a także tworzenie wersji do druku z Twoich własnych treści.
+
+Jak uruchomić umiejętność: po prostu opisz, czego potrzebujesz. „Zrób mi dokument Word z…" albo „Utwórz prezentację na 6 slajdów o…" w zupełności wystarczy. Claude zwróci gotowy plik do pobrania, który możesz od razu otworzyć. O poprawki proś tak samo — „strona 2 ma być w punktach zamiast akapitu", „cieplejszy ton na slajdzie 4".`
+        },
+        exercises: [
+          {
+            id: "skills-1",
+            title: {
+              en: "Draft a Word newsletter",
+              pl: "Zrób biuletyn w Wordzie"
+            },
+            prompt: {
+              en:
+`In Claude Desktop, send this prompt:
+
+"Create a Word document — a one-page draft of Gmina Kosakowo's monthly resident newsletter for May. Sections: a short welcome from the council, three news items (invent reasonable ones — e.g. road resurfacing on ul. Kwiatowa, a free family picnic in the park, new opening hours at the sports hall), and a 'how to reach us' footer with office hours and a contact email. Friendly tone, plain language, no jargon."
+
+Claude will produce a downloadable .docx file. Open it and read through. Then ask Claude:
+
+1. "Shorten the welcome to two sentences."
+2. "Add an extra news item about an upcoming voluntary blood donation day."
+3. "Rewrite the third news item in slightly more formal language."
+
+Notice how you can keep adjusting without re-uploading anything — Claude tracks the document through the whole conversation.`,
+              pl:
+`W Claude Desktop wyślij ten prompt:
+
+„Stwórz dokument Word — jednostronnicowy projekt majowego biuletynu dla mieszkańców Gminy Kosakowo. Sekcje: krótkie powitanie od urzędu, trzy newsy (wymyśl sensowne — np. remont nawierzchni na ul. Kwiatowej, bezpłatny rodzinny piknik w parku, nowe godziny otwarcia hali sportowej) oraz stopka „jak się z nami skontaktować" z godzinami urzędowania i adresem e-mail. Ton przyjazny, prosty język, bez urzędniczego żargonu."
+
+Claude zwróci plik .docx do pobrania. Otwórz go i przeczytaj. Następnie poproś Claude:
+
+1. „Skróć powitanie do dwóch zdań."
+2. „Dodaj kolejnego newsa o nadchodzącej zbiórce krwi."
+3. „Przeredaguj trzeciego newsa nieco bardziej oficjalnym językiem."
+
+Zauważ, że możesz wprowadzać zmiany bez wgrywania pliku na nowo — Claude pamięta dokument przez całą rozmowę.`
+            }
+          },
+          {
+            id: "skills-2",
+            title: {
+              en: "Build a PowerPoint for a local event",
+              pl: "Stwórz prezentację PowerPoint na lokalne wydarzenie"
+            },
+            prompt: {
+              en:
+`Send this prompt in Claude Desktop:
+
+"Create a PowerPoint presentation, 6 slides, for a free summer family festival in Gmina Kosakowo (invent a date and place). Slides:
+
+1. Title slide — festival name, date, location.
+2. What's happening — the day's programme in 4–5 short points.
+3. For families with kids — what's planned for children.
+4. Local partners — a few invented local businesses and organisations supporting the event.
+5. Practical info — parking, toilets, weather plan.
+6. Thank-you slide — invitation and contact details.
+
+Friendly tone, plain language."
+
+Open the .pptx file Claude produces. Then ask: "Give me an alternative version of slide 3 aimed at teenagers instead of small children." Open the updated file and compare — that's how you produce variations quickly without rebuilding the whole deck.`,
+              pl:
+`Wyślij w Claude Desktop ten prompt:
+
+„Stwórz prezentację PowerPoint, 6 slajdów, na bezpłatny letni festyn rodzinny w Gminie Kosakowo (wymyśl datę i miejsce). Slajdy:
+
+1. Slajd tytułowy — nazwa festynu, data, miejsce.
+2. Program dnia — atrakcje w 4–5 krótkich punktach.
+3. Dla rodzin z dziećmi — co zaplanowane jest dla najmłodszych.
+4. Lokalni partnerzy — kilka wymyślonych lokalnych firm i organizacji wspierających wydarzenie.
+5. Praktyczne informacje — parking, toalety, plan na deszcz.
+6. Slajd końcowy — zaproszenie i kontakt.
+
+Ton przyjazny, prosty język."
+
+Otwórz plik .pptx, który Claude przygotuje. Potem zapytaj: „Daj mi alternatywną wersję slajdu 3, skierowaną do nastolatków, a nie do małych dzieci." Otwórz zaktualizowany plik i porównaj — tak właśnie można szybko produkować warianty bez budowania całej prezentacji od zera.`
+            }
+          },
+          {
+            id: "skills-3",
+            title: {
+              en: "Turn a PDF into a Facebook post",
+              pl: "Zamień PDF w post na Facebooka"
+            },
+            prompt: {
+              en:
+`Find any work PDF you can use safely — a public council resolution, an event flier, a public report. (If you don't have one to hand, download a sample PDF from the Gmina Kosakowo website or any public source.)
+
+In Claude Desktop, attach the PDF using the paperclip / attachment button and send this prompt:
+
+"Read this PDF and:
+1. Summarise it in 4 sentences for someone with no background on the topic.
+2. Pull out the key dates, people, and any action residents need to take.
+3. Then draft a short Facebook post (max 80 words, friendly tone) telling our residents what they need to know, ending with a polite sentence pointing them to where they can read more."
+
+Read the three outputs. Often the post needs a small tweak — ask for it: "Make the Facebook post warmer", "lead with the date", "include one emoji". Notice how, with the document attached, Claude is working from the actual content rather than guessing.`,
+              pl:
+`Znajdź jakikolwiek służbowy PDF, którego możesz spokojnie użyć — publiczną uchwałę rady, ulotkę wydarzenia, publiczny raport. (Jeśli nie masz pod ręką, pobierz przykładowy PDF ze strony Gminy Kosakowo lub innego publicznego źródła.)
+
+W Claude Desktop dołącz PDF przyciskiem spinacza / załącznika i wyślij ten prompt:
+
+„Przeczytaj ten PDF i:
+1. Streszcz go w 4 zdaniach dla kogoś, kto nie ma żadnej wiedzy na ten temat.
+2. Wypisz kluczowe daty, nazwiska i wszelkie działania, jakie powinni podjąć mieszkańcy.
+3. Następnie napisz krótki post na Facebooka (maks. 80 słów, przyjazny ton), mówiący naszym mieszkańcom, co jest najważniejsze, zakończony grzecznym zdaniem zachęcającym do przeczytania całości w źródle."
+
+Przeczytaj trzy wyniki. Często post wymaga drobnej poprawki — poproś o nią: „Ociepl post na Facebooka", „zacznij od daty", „dodaj jedno emoji". Zauważ, że dzięki załączonemu dokumentowi Claude pracuje na konkretnej treści, a nie zgaduje.`
+            }
+          },
+          {
+            id: "skills-4",
+            title: {
+              en: "Simple Excel: a 4-week content calendar",
+              pl: "Prosty Excel: kalendarz publikacji na 4 tygodnie"
+            },
+            prompt: {
+              en:
+`In Claude Desktop, send this prompt:
+
+"Utwórz arkusz Excel — kalendarz publikacji Gminy Kosakowo na najbliższe 4 tygodnie. Kolumny: data, dzień tygodnia, kanał (Facebook / strona gminy / mailing), temat, krótki opis (1 zdanie), status (planowane / w pracy / opublikowane). Wypełnij około 12 wpisami z realistycznymi tematami komunalnymi: wydarzenia, przypomnienia, ogłoszenia urzędowe. Zostaw kilka pustych wierszy do dopisania."
+
+Claude returns an .xlsx file you can download. Open it. Then, in the same chat, ask for three changes one by one:
+
+1. "Dodaj kolumnę »osoba odpowiedzialna« i wypełnij ją wymyślonymi imionami."
+2. "Posortuj wpisy chronologicznie według daty."
+3. "Zaproponuj jeszcze 5 dodatkowych tematów na maj — dopisz je w pustych wierszach."
+
+Notice how Claude rebuilds the file at each request — you always get a fresh, downloadable version. This is the easiest way to build a simple work tracker for someone who'd rather not click through Excel cells.`,
+              pl:
+`W Claude Desktop wyślij ten prompt:
+
+„Utwórz arkusz Excel — kalendarz publikacji Gminy Kosakowo na najbliższe 4 tygodnie. Kolumny: data, dzień tygodnia, kanał (Facebook / strona gminy / mailing), temat, krótki opis (1 zdanie), status (planowane / w pracy / opublikowane). Wypełnij około 12 wpisami z realistycznymi tematami komunalnymi: wydarzenia, przypomnienia, ogłoszenia urzędowe. Zostaw kilka pustych wierszy do dopisania."
+
+Claude zwróci plik .xlsx do pobrania. Otwórz go. Następnie, w tej samej rozmowie, poproś o trzy zmiany — jedna po drugiej:
+
+1. „Dodaj kolumnę »osoba odpowiedzialna« i wypełnij ją wymyślonymi imionami."
+2. „Posortuj wpisy chronologicznie według daty."
+3. „Zaproponuj jeszcze 5 dodatkowych tematów na maj — dopisz je w pustych wierszach."
+
+Zauważ, że Claude przy każdej prośbie buduje plik od nowa — zawsze masz świeżą wersję do pobrania. To najprostszy sposób na zrobienie prostego trackera dla kogoś, kto woli nie klikać po komórkach Excela.`
+            }
+          }
+        ]
+      },
+      {
+        id: "mcp",
+        title: {
+          en: "MCP — connecting Claude to other tools",
+          pl: "MCP — połącz Claude'a z innymi narzędziami"
+        },
+        body: {
+          en:
+`MCP — Model Context Protocol — is the way Claude Desktop can connect to other tools and services. Without it, Claude only sees what you type or paste into chat. With it, Claude can search your Google Drive, check your calendar, look something up on the web, or read files on your computer — at your request, while you talk.
+
+A few examples of what an MCP connection can unlock for council communications:
+
+• "Find the PDF of the May resolution in our shared Drive and pull out the key points for a Facebook post."
+
+• "When is our next council meeting, and who is on the agenda?" (with a Calendar connection)
+
+• "What are other Polish coastal communes doing for tourist season this year?" (with a web search connection)
+
+• "Open the file 'plan_komunikacji_q2.docx' from my Desktop and suggest a tighter structure."
+
+Two things worth knowing:
+
+1. Some connections install with one click. In Claude Desktop, Settings → Extensions → Browse lets you install many ready-made connectors (web search, calendars, common file services) yourself — no IT needed. For internal council systems or anything custom, you'll still need someone — usually IT — to install the right MCP server. Either way, once set up, it just works.
+
+2. Trust matters. Some MCP servers are official (Anthropic, Google), others are community-built. Treat them like any other software a workplace adopts — ask what it accesses, where the data goes, and who is responsible.
+
+This lesson is about understanding what MCP is and what it could change in your day. Some connections you can set up yourself in one click; others (internal systems) need your IT team. The exercises below help you see what's already on, prepare a concrete ask for things you can't install yourself, and try a one-click extension on your own.`,
+          pl:
+`MCP — Model Context Protocol — to sposób, w jaki Claude Desktop może łączyć się z innymi narzędziami i usługami. Bez MCP Claude widzi tylko to, co wpiszesz lub wkleisz w rozmowie. Z MCP Claude może przeszukać Twój Google Drive, sprawdzić kalendarz, znaleźć coś w internecie albo otworzyć plik na komputerze — na Twoją prośbę, w trakcie rozmowy.
+
+Kilka przykładów, co MCP może otworzyć w pracy komunikacyjnej:
+
+• „Znajdź PDF majowej uchwały na naszym wspólnym Dysku i wyciągnij z niej kluczowe punkty do posta na Facebooka."
+
+• „Kiedy mamy następną sesję rady i kto jest w porządku obrad?" (przy podłączonym Kalendarzu)
+
+• „Co inne polskie gminy nadmorskie robią w tym roku na sezon turystyczny?" (przy podłączonym wyszukiwaniu internetowym)
+
+• „Otwórz plik »plan_komunikacji_q2.docx« z mojego pulpitu i zaproponuj zwartszą strukturę."
+
+Dwie rzeczy warto wiedzieć:
+
+1. Część połączeń instaluje się jednym kliknięciem. W Claude Desktop wejdź w Settings → Extensions → Browse — wiele gotowych rozszerzeń (wyszukiwanie internetowe, kalendarze, popularne usługi plikowe) zainstalujesz sama, bez pomocy informatyka. Do wewnętrznych systemów urzędu albo czegokolwiek niestandardowego nadal potrzebna będzie osoba z IT, żeby zainstalować odpowiedni serwer MCP. Tak czy inaczej — raz skonfigurowane, po prostu działa.
+
+2. Liczy się zaufanie. Część serwerów MCP jest oficjalna (Anthropic, Google), część została zbudowana przez społeczność. Traktuj je jak każde inne oprogramowanie wprowadzane do pracy — pytaj, do czego mają dostęp, gdzie trafiają dane i kto za nie odpowiada.
+
+Ta lekcja jest o zrozumieniu, czym jest MCP i co mogłoby się zmienić w Twoim dniu pracy. Niektóre rozszerzenia ustawisz sama jednym kliknięciem; te dla wewnętrznych systemów wymagają zespołu IT. Poniższe ćwiczenia pomogą Ci zobaczyć, co już masz włączone, przygotować konkretną prośbę o to, czego nie zainstalujesz sama, oraz spróbować jednego rozszerzenia samodzielnie.`
+        },
+        exercises: [
+          {
+            id: "mcp-1",
+            title: {
+              en: "See what your Claude already connects to",
+              pl: "Sprawdź, do czego Twój Claude już ma dostęp"
+            },
+            prompt: {
+              en:
+`Open Claude Desktop and look around the interface for a section called "Connectors", "Tools", "Integrations", or similar (often under settings, or shown when you start a new chat). Note what's already listed there — even an empty list is useful information.
+
+Then in any chat send this prompt:
+
+"What tools do you currently have access to in this conversation? List them in plain language with one sentence each describing what they can do for me. If you don't have any extra tools beyond chat, say so plainly."
+
+Read the answer. This tells you what's already wired up — and therefore what you can ask Claude to do without anyone having to install anything new.`,
+              pl:
+`Otwórz Claude Desktop i rozejrzyj się po interfejsie w poszukiwaniu sekcji nazwanej „Connectors", „Tools", „Integrations" lub podobnie (często pod ustawieniami albo widoczna przy rozpoczynaniu nowej rozmowy). Zwróć uwagę, co już jest na liście — nawet pusta lista to przydatna informacja.
+
+Następnie w dowolnej rozmowie wyślij ten prompt:
+
+„Do jakich narzędzi masz teraz dostęp w tej rozmowie? Wymień je prostym językiem, opisując każde jednym zdaniem — co konkretnie może mi pomóc zrobić. Jeśli nie masz żadnych dodatkowych narzędzi poza zwykłą rozmową, powiedz to wprost."
+
+Przeczytaj odpowiedź. To pokazuje, co już jest podłączone — a więc o co możesz prosić Claude'a bez czekania, aż ktoś coś dodatkowo zainstaluje.`
+            }
+          },
+          {
+            id: "mcp-2",
+            title: {
+              en: "Match your weekly tasks to possible MCP connections",
+              pl: "Dopasuj swoje tygodniowe zadania do możliwych połączeń MCP"
+            },
+            prompt: {
+              en:
+`Make a quick mental list of three things you actually do at work in a typical week — for example: replying to resident enquiries by email, drafting Facebook content, preparing slides for the council meeting.
+
+In Claude Desktop, send this prompt:
+
+"I work in the communications team at a Polish municipal council (Gmina Kosakowo). In a typical week I [list your three tasks]. For each one, tell me: which MCP connection or external tool would make this faster or better, what it would let me do that I can't do now, and what the trade-off is (set-up cost, data access concerns, etc.). Be honest if a task doesn't really need MCP — say so."
+
+Read the suggestions. Pick the one that would help you most, and hold on to it for the next exercise.`,
+              pl:
+`Zrób krótką listę trzech rzeczy, którymi zajmujesz się w pracy w typowym tygodniu — na przykład: odpowiadanie mieszkańcom na maile, tworzenie treści na Facebooka, przygotowywanie slajdów na sesję rady.
+
+W Claude Desktop wyślij ten prompt:
+
+„Pracuję w zespole komunikacji w polskim urzędzie gminy (Gmina Kosakowo). W typowym tygodniu zajmuję się [wymień trzy swoje zadania]. Dla każdego powiedz mi: które połączenie MCP lub zewnętrzne narzędzie sprawiłoby, że ta praca byłaby szybsza lub lepsza, co dałoby mi to, czego teraz nie potrafię, oraz jaki jest koszt (konfiguracja, kwestie dostępu do danych itp.). Bądź szczery, jeśli któreś zadanie naprawdę nie potrzebuje MCP — powiedz to wprost."
+
+Przeczytaj propozycje. Wybierz tę, która pomogłaby Ci najbardziej, i zapamiętaj ją do następnego ćwiczenia.`
+            }
+          },
+          {
+            id: "mcp-3",
+            title: {
+              en: "Draft a clear request for one MCP connection",
+              pl: "Przygotuj jasną prośbę o jedno połączenie MCP"
+            },
+            prompt: {
+              en:
+`Using the MCP connection you picked in the previous exercise, ask Claude:
+
+"Help me draft a short, friendly e-mail to our IT person asking to set up [name of MCP connection — e.g. Google Drive, Calendar, web search] in Claude Desktop. The e-mail should: politely explain what I want to do, why it would help my work specifically, three concrete examples of tasks it would speed up, what kind of access it would need (in plain language), and one sentence acknowledging that they will want to check whether it's safe and approved. Keep it under 200 words."
+
+Read the draft. Ask Claude to make it shorter, more formal, or to add a line about Gmina Kosakowo's communications context — whatever fits how you'd actually send it. You now have a real, sendable request and a much clearer mental model of what MCP is for.`,
+              pl:
+`Wybierz połączenie MCP z poprzedniego ćwiczenia i poproś Claude:
+
+„Pomóż mi napisać krótkiego, przyjaznego maila do naszego informatyka z prośbą o skonfigurowanie [nazwa połączenia MCP — np. Google Drive, Kalendarz, wyszukiwanie internetowe] w Claude Desktop. Mail ma: grzecznie wyjaśniać, co chcę robić, dlaczego to konkretnie pomoże mi w pracy, trzy konkretne przykłady zadań, które dzięki temu przyspieszą, jakiego dostępu to wymaga (prostym językiem) oraz jedno zdanie uznające, że będzie chciał sprawdzić, czy to bezpieczne i dopuszczone do użytku. Maksymalnie 200 słów."
+
+Przeczytaj wersję roboczą. Poproś Claude'a o skrócenie, większą formalność albo dopisanie zdania o kontekście komunikacji w Gminie Kosakowo — co najlepiej pasuje do tego, jak naprawdę wysłałabyś tego maila. Masz teraz gotową, możliwą do wysłania prośbę i znacznie jaśniejszy obraz tego, do czego służy MCP.`
+            }
+          },
+          {
+            id: "mcp-4",
+            title: {
+              en: "One click: install an extension yourself",
+              pl: "Jedno kliknięcie: zainstaluj rozszerzenie sama"
+            },
+            prompt: {
+              en:
+`This one you do without IT.
+
+In Claude Desktop, open Settings → Extensions and click "Browse extensions". You'll see a catalogue of one-click connectors reviewed by Anthropic. Pick one that sounds useful — a safe starter is "Web Search" (lets Claude look things up online) or "Filesystem" (lets Claude read files from a folder you choose).
+
+Click Install. Approve any permission prompts. Restart Claude Desktop if asked.
+
+Now test it in a new chat:
+
+• If you installed Web Search: "Sprawdź w internecie, co inne polskie gminy nadmorskie planują na sezon turystyczny w tym roku. Wymień 5 konkretnych przykładów z nazwami gmin i krótkim opisem."
+
+• If you installed Filesystem: point it at one folder with non-sensitive files only, then ask: "Zajrzyj do folderu, który Ci wskazałam. Wypisz pliki i napisz krótko, co każdy z nich wygląda na to, że zawiera."
+
+Notice the difference: Claude is now reading the world, not just your chat. Two cautions: only install extensions you actually need, and treat "Filesystem" carefully — never point it at folders with residents' personal data, scans of documents, or anything covered by GDPR.`,
+              pl:
+`To ćwiczenie zrobisz bez pomocy informatyka.
+
+W Claude Desktop otwórz Settings → Extensions i kliknij „Browse extensions". Zobaczysz katalog rozszerzeń instalowanych jednym kliknięciem, sprawdzonych przez Anthropic. Wybierz jedno, które wygląda przydatnie — bezpieczny start to „Web Search" (Claude może szukać w internecie) albo „Filesystem" (Claude może czytać pliki z folderu, który mu wskażesz).
+
+Kliknij Install. Zatwierdź prośby o uprawnienia. Jeśli aplikacja poprosi — uruchom ją ponownie.
+
+Teraz sprawdź, jak to działa, w nowej rozmowie:
+
+• Jeśli zainstalowałaś Web Search: „Sprawdź w internecie, co inne polskie gminy nadmorskie planują na sezon turystyczny w tym roku. Wymień 5 konkretnych przykładów z nazwami gmin i krótkim opisem."
+
+• Jeśli zainstalowałaś Filesystem: wskaż folder zawierający wyłącznie pliki bez danych wrażliwych i zapytaj: „Zajrzyj do folderu, który Ci wskazałam. Wypisz pliki i napisz krótko, co każdy z nich wygląda na to, że zawiera."
+
+Zauważ różnicę: Claude czyta teraz świat, nie tylko rozmowę. Dwie ważne uwagi: instaluj tylko te rozszerzenia, których naprawdę potrzebujesz, a do „Filesystem" podchodź ostrożnie — nigdy nie kieruj go na foldery z danymi osobowymi mieszkańców, skanami pism ani niczym, co obejmuje RODO.`
+            }
+          }
+        ]
+      }
+    ];
+
+    const getLang = () => localStorage.getItem(LANG_KEY) === "en" ? "en" : "pl";
+
+    const setLang = (lang) => {
+      const normalized = lang === "en" ? "en" : "pl";
+      localStorage.setItem(LANG_KEY, normalized);
+      document.documentElement.lang = normalized;
+    };
+
+    const getProgress = () => {
+      try {
+        return JSON.parse(localStorage.getItem(PROGRESS_KEY)) || {};
+      } catch {
+        return {};
+      }
+    };
+
+    const markDone = (exerciseId, done = true) => {
+      const progress = getProgress();
+      if (done) progress[exerciseId] = true;
+      else delete progress[exerciseId];
+      localStorage.setItem(PROGRESS_KEY, JSON.stringify(progress));
+    };
+
+    const t = (field) => field?.[getLang()] ?? "";
+
+    const escapeHtml = (s) => String(s)
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#39;");
+
+    let activeLessonId = LESSONS[0].id;
+
+    function renderStaticLabels() {
+      document.querySelectorAll("[data-i18n]").forEach(el => {
+        const key = el.dataset.i18n;
+        if (UI[key]) el.textContent = t(UI[key]);
+      });
+      document.getElementById("langLabel").textContent = getLang() === "en" ? "PL" : "EN";
+      document.title = getLang() === "pl"
+        ? "Claude Training — Nauka Claude Desktop"
+        : "Claude Training — Learn Claude Desktop";
+    }
+
+    function renderProgress() {
+      const total = LESSONS.reduce((sum, l) => sum + l.exercises.length, 0);
+      const done = Object.keys(getProgress()).length;
+      const pct = total ? Math.round((done / total) * 100) : 0;
+      document.getElementById("progressBar").style.width = pct + "%";
+      document.getElementById("progressCount").textContent = `${done}/${total}`;
+    }
+
+    function renderNav() {
+      const progress = getProgress();
+      const nav = document.getElementById("lessonNav");
+      nav.innerHTML = LESSONS.map(lesson => {
+        const doneCount = lesson.exercises.filter(e => progress[e.id]).length;
+        const total = lesson.exercises.length;
+        const complete = total > 0 && doneCount === total;
+        const active = lesson.id === activeLessonId;
+        const baseClasses = "block w-full text-left px-3 py-2 rounded min-h-[44px] focus:outline-none focus:ring-2 focus:ring-slate-500";
+        const stateClasses = active
+          ? "bg-slate-900 text-white"
+          : "bg-white border border-slate-200 hover:bg-slate-100";
+        const badge = complete
+          ? `<span aria-hidden="true" class="text-emerald-500">✓</span>`
+          : `<span aria-hidden="true" class="text-xs ${active ? "text-slate-300" : "text-slate-500"} tabular-nums">${doneCount}/${total}</span>`;
+        return `
+          <button type="button" data-lesson="${escapeHtml(lesson.id)}"
+                  class="${baseClasses} ${stateClasses}"
+                  aria-current="${active ? "page" : "false"}">
+            <span class="flex items-center justify-between gap-2">
+              <span class="font-medium">${escapeHtml(t(lesson.title))}</span>
+              ${badge}
+            </span>
+          </button>`;
+      }).join("");
+    }
+
+    function renderLesson() {
+      const progress = getProgress();
+      const lesson = LESSONS.find(l => l.id === activeLessonId) ?? LESSONS[0];
+      const main = document.getElementById("main");
+      const exercisesHtml = lesson.exercises.map((ex, i) => {
+        const checked = progress[ex.id] ? "checked" : "";
+        return `
+          <li class="border border-slate-200 rounded-lg p-4">
+            <div class="flex items-start justify-between gap-4 mb-3 flex-wrap">
+              <h4 class="font-semibold text-base">${i + 1}. ${escapeHtml(t(ex.title))}</h4>
+              <label class="inline-flex items-center gap-2 cursor-pointer min-h-[44px] select-none">
+                <input type="checkbox" data-exercise="${escapeHtml(ex.id)}" ${checked}
+                       class="w-5 h-5 rounded border-slate-400 text-emerald-600 focus:ring-emerald-500" />
+                <span class="text-sm text-slate-700">${escapeHtml(t(UI.markDone))}</span>
+              </label>
+            </div>
+            <p class="whitespace-pre-line leading-relaxed text-slate-700">${escapeHtml(t(ex.prompt))}</p>
+          </li>`;
+      }).join("");
+
+      main.innerHTML = `
+        <article>
+          <h2 class="text-2xl sm:text-3xl font-bold mb-4">${escapeHtml(t(lesson.title))}</h2>
+          <section class="mb-8">
+            <h3 class="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-2">${escapeHtml(t(UI.conceptHeading))}</h3>
+            <div class="whitespace-pre-line leading-relaxed text-slate-800">${escapeHtml(t(lesson.body))}</div>
+          </section>
+          ${lesson.exercises.length ? `
+            <section>
+              <h3 class="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-3">${escapeHtml(t(UI.exercisesHeading))}</h3>
+              <ol class="space-y-4">${exercisesHtml}</ol>
+            </section>
+          ` : ""}
+        </article>`;
+    }
+
+    function render() {
+      renderStaticLabels();
+      renderProgress();
+      renderNav();
+      renderLesson();
+    }
+
+    document.documentElement.lang = getLang();
+
+    document.getElementById("langToggle").addEventListener("click", () => {
+      setLang(getLang() === "en" ? "pl" : "en");
+      render();
+    });
+
+    document.getElementById("lessonNav").addEventListener("click", (e) => {
+      const btn = e.target.closest("[data-lesson]");
+      if (!btn) return;
+      activeLessonId = btn.dataset.lesson;
+      render();
+      document.getElementById("main").focus();
+    });
+
+    document.getElementById("main").addEventListener("change", (e) => {
+      const input = e.target.closest("[data-exercise]");
+      if (!input) return;
+      markDone(input.dataset.exercise, input.checked);
+      renderNav();
+      renderProgress();
+    });
+
+    render();
+  </script>
+</body>
+</html>

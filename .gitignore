@@ -1,0 +1,24 @@
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+
+# Logs
+*.log
+
+# Node (defensive — no build step today)
+node_modules/
+
+# Playwright MCP debug artifacts
+.playwright-mcp/
+
+# Local maister state (commit docs/, ignore anything local-only)
+.maister/*.local
+.maister/state/
+.maister/cache/
+
+# Env files (none expected, but defensive)
+.env
+.env.local
